@@ -3,7 +3,7 @@
 This script will let you run puppet standalone with
 support for multiple environments (eg. version'd environments)
 
-It requires a directories of release directories under /etc/puppet/releases.
+It requires a directories of release directories under /etc/puppet/apps
 Each top-level release directory requires a manifest.yaml file
 which includes the key 'modulepath' with a list of directories
 relative to /etc/puppet/src/. These will be added to 
@@ -16,7 +16,7 @@ import yaml
 import shutil
 import os.path
 
-RELEASE_DIR="/etc/puppet/releases"
+APP_MODULE_DIR="/etc/puppet/modules"
 DEST_ENC_YAML="/etc/puppet/node.yaml"
 INPUT_YAML="/etc/puppet/input.yaml"
 PUPPET_MANIFEST="/etc/puppet/manifests/default.pp"
@@ -81,7 +81,7 @@ def get_app_dirs(module_dir, app_dir):
         die("Manifest file doesn't exist: {0}".format(manifest))
     data = yaml.load(open(manifest))
     if "modulepath" in data:
-        return data["modulepath"]
+        return [app_dir] + data["modulepath"]
     return []
 
 def main():
@@ -91,13 +91,11 @@ def main():
     except KeyError:
         die("ERROR: Input YAML must have an 'app' key")
         sys.exit(1)
-    app_dirs = get_app_dirs(RELEASE_DIR, app)
-    modulepath = get_modulepath(RELEASE_DIR, app_dirs)
+    app_dirs = get_app_dirs(APP_MODULE_DIR, app)
+    modulepath = get_modulepath(APP_MODULE_DIR, app_dirs)
     with open(DEST_ENC_YAML,"wb") as fd:
         yaml.dump(normalise_enc_data(encdata), fd)
-    cmd = "puppet apply --node_terminus exec --external_nodes {0} --modulepath '{1}' {2}".format(ENC_PATH, modulepath, PUPPET_MANIFEST)
-    print "# "+cmd
-    os.execv("/usr/bin/puppet", [
+    args = [
         "/usr/bin/puppet",
         "apply",
         "--node_terminus",
@@ -107,7 +105,9 @@ def main():
         "--modulepath",
         modulepath,
         PUPPET_MANIFEST
-    ])
+    ]
+    print("# "+' '.join(args))
+    os.execv("/usr/bin/puppet", args)
 
 if __name__ == "__main__":
     main()

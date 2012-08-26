@@ -1,4 +1,4 @@
-app: app/foo-trunk
+app: foo/trunk
 classes:
   foo:
   platform:
