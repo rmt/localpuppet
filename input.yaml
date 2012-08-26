@@ -1,0 +1,4 @@
+app: app/foo-trunk
+classes:
+  foo:
+  platform:
